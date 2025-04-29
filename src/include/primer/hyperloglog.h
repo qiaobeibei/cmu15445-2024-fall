@@ -13,6 +13,7 @@
 #pragma once
 
 #include <bits/c++config.h>
+#include <algorithm>
 #include <bitset>
 #include <cmath>
 #include <iostream>
