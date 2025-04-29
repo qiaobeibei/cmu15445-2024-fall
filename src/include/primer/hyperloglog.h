@@ -12,13 +12,15 @@
 
 #pragma once
 
+#include <bits/c++config.h>
 #include <bitset>
+#include <cmath>
+#include <iostream>
 #include <memory>
 #include <mutex>  // NOLINT
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "common/util/hash_util.h"
 
 /** @brief Capacity of the bitset stream. */
@@ -49,6 +51,15 @@ class HyperLogLog {
   auto ComputeCardinality() -> void;
 
  private:
+  /** @brief Cardinality value. */
+  size_t cardinality_;
+
+  /** @todo (student) can add their data structures that support HyperLogLog */
+  std::vector<uint8_t> registers_;
+  std::mutex m_;          // 保护线程安全
+  const int16_t n_bits_;  // 记录b的数值大小
+  size_t num_registers_;  // 桶数量
+
   /**
    * @brief Calculates Hash of a given value.
    *
@@ -67,12 +78,24 @@ class HyperLogLog {
 
   auto ComputeBinary(const hash_t &hash) const -> std::bitset<BITSET_CAPACITY>;
 
-  auto PositionOfLeftmostOne(const std::bitset<BITSET_CAPACITY> &bset) const -> uint64_t;
+  auto PositionOfLeftmostOne(const std::bitset<BITSET_CAPACITY> &bset) const -> uint8_t;
 
-  /** @brief Cardinality value. */
-  size_t cardinality_;
+  auto GetBucketValue(const std::bitset<BITSET_CAPACITY> &bset) const -> uint64_t;
 
-  /** @todo (student) can add their data structures that support HyperLogLog */
+  /**
+   * @brief Function that insert p to bucket.
+   *
+   * @param[in] b_index - the index of bucket
+   * @param[in] p - the value of bucket
+   * @returns void
+   */
+  inline void InsertPToBucket(const uint64_t &b_index, const uint8_t &p) {
+    {
+      std::lock_guard<std::mutex> lk(m_);
+      uint64_t actual_index = b_index % registers_.size();
+      registers_[actual_index] = std::max(registers_[actual_index], p);
+    }
+  }
 };
 
 }  // namespace bustub
