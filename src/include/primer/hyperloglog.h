@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <bitset>
 #include <cmath>
+#include <cstddef>
 #include <iostream>
 #include <memory>
 #include <mutex>  // NOLINT
@@ -45,7 +46,12 @@ class HyperLogLog {
    *
    * @returns cardinality value
    */
-  auto GetCardinality() { return cardinality_; }
+  auto GetCardinality() -> size_t {
+    if (cardinality_ == 0x8000000000000000ULL) {
+      return 0;
+    }
+    return cardinality_;
+  }
 
   auto AddElem(KeyType val) -> void;
 
