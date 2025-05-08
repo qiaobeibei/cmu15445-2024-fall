@@ -12,13 +12,16 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <list>
 #include <mutex>  // NOLINT
 #include <optional>
+#include <queue>
 #include <unordered_map>
 #include <vector>
-
 #include "common/config.h"
 #include "common/macros.h"
 
@@ -30,11 +33,24 @@ class LRUKNode {
  private:
   /** History of last seen K timestamps of this page. Least recent timestamp stored in front. */
   // Remove maybe_unused if you start using them. Feel free to change the member variables as you want.
+  std::list<size_t> history_;
+  size_t k_;
+  frame_id_t fid_;
+  bool is_evictable_;
 
-  [[maybe_unused]] std::list<size_t> history_;
-  [[maybe_unused]] size_t k_;
-  [[maybe_unused]] frame_id_t fid_;
-  [[maybe_unused]] bool is_evictable_{false};
+ public:
+  LRUKNode(size_t k, frame_id_t fid) {
+    k_ = k;
+    fid_ = fid;
+    is_evictable_ = false;
+  }
+  LRUKNode() = default;
+  friend class LRUKReplacer;
+  // auto GetHistory() -> std::list<size_t> & { return history_; }
+  // auto GetK() -> size_t { return k_; }
+  // auto GetFid() -> frame_id_t { return fid_; }
+  // auto SetEvictable(bool flag) -> void { is_evictable_ = flag; }
+  // auto GetEvictable() -> bool { return is_evictable_; }
 };
 
 /**
@@ -74,12 +90,18 @@ class LRUKReplacer {
  private:
   // TODO(student): implement me! You can replace these member variables as you like.
   // Remove maybe_unused if you start using them.
-  [[maybe_unused]] std::unordered_map<frame_id_t, LRUKNode> node_store_;
-  [[maybe_unused]] size_t current_timestamp_{0};
-  [[maybe_unused]] size_t curr_size_{0};
-  [[maybe_unused]] size_t replacer_size_;
-  [[maybe_unused]] size_t k_;
-  [[maybe_unused]] std::mutex latch_;
+  std::unordered_map<frame_id_t, LRUKNode> node_store_;
+  size_t current_timestamp_{0};
+  std::atomic<size_t> curr_size_{0};
+  size_t replacer_size_;
+  size_t k_;
+  std::mutex latch_;
+
+  // 优先队列用于存储可淘汰帧
+  using QueueEntry = std::pair<size_t, frame_id_t>;
+  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> evictable_queue_;
+
+  auto CalculateBackwardKDistance(const LRUKNode &node) -> size_t;
 };
 
 }  // namespace bustub
