@@ -17,6 +17,7 @@
 #include <thread>  // NOLINT
 
 #include "common/channel.h"
+#include "common/config.h"
 #include "storage/disk/disk_manager.h"
 
 namespace bustub {
@@ -40,6 +41,44 @@ struct DiskRequest {
 
   /** Callback used to signal to the request issuer when the request has been completed. */
   std::promise<bool> callback_;
+
+  DiskRequest(bool is_write, char *data, page_id_t page_id, std::promise<bool> callback)
+      : is_write_(is_write), data_(data), page_id_(page_id), callback_(std::move(callback)) {}
+
+  DiskRequest(const DiskRequest &other)
+      : is_write_(other.is_write_), data_(other.data_), page_id_(other.page_id_), callback_() {
+    // 这里创建了一个新的 promise 对象，原 promise 的状态不会被复制,需要使用新的 callback_ 获取完成信号
+  }
+
+  auto operator=(const DiskRequest &other) -> DiskRequest & {
+    if (this != &other) {
+      is_write_ = other.is_write_;
+      data_ = other.data_;
+      page_id_ = other.page_id_;
+      callback_ = std::promise<bool>();  // 创建新的 promise
+      // 注意：原 promise 的状态会被丢弃，调用者需要使用新的 callback_
+    }
+    return *this;
+  }
+
+  DiskRequest(DiskRequest &&other) noexcept
+      : is_write_(other.is_write_),
+        data_(other.data_),
+        page_id_(other.page_id_),
+        callback_(std::move(other.callback_)) {
+    other.data_ = nullptr;  // 避免原对象析构时释放内存
+  }
+
+  auto operator=(DiskRequest &&other) noexcept -> DiskRequest & {
+    if (this != &other) {
+      is_write_ = other.is_write_;
+      data_ = other.data_;
+      page_id_ = other.page_id_;
+      callback_ = std::move(other.callback_);
+      other.data_ = nullptr;  // 避免原对象析构时释放内存
+    }
+    return *this;
+  }
 };
 
 /**

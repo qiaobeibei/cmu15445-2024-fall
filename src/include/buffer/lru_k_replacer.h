@@ -97,10 +97,6 @@ class LRUKReplacer {
   size_t k_;
   std::mutex latch_;
 
-  // 优先队列用于存储可淘汰帧
-  using QueueEntry = std::pair<size_t, frame_id_t>;
-  std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>> evictable_queue_;
-
   auto CalculateBackwardKDistance(const LRUKNode &node) -> size_t;
 };
 
