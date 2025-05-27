@@ -14,7 +14,8 @@
 
 #include <memory>
 
-#include "buffer/buffer_pool_manager.h"
+#include "buffer/lru_k_replacer.h"
+#include "common/config.h"
 #include "storage/disk/disk_scheduler.h"
 #include "storage/page/page.h"
 

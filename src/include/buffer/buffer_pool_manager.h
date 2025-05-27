@@ -20,13 +20,12 @@
 
 #include "buffer/lru_k_replacer.h"
 #include "common/config.h"
+#include "include/common/logger.h"
 #include "recovery/log_manager.h"
 #include "storage/disk/disk_scheduler.h"
 #include "storage/page/page.h"
-#include "storage/page/page_guard.h"
 
 namespace bustub {
-
 class BufferPoolManager;
 class ReadPageGuard;
 class WritePageGuard;
@@ -34,9 +33,9 @@ class WritePageGuard;
 /**
  * @brief A helper class for `BufferPoolManager` that manages a frame of memory and related metadata.
  *
- * This class represents headers for frames of memory that the `BufferPoolManager` stores pages of data into. Note that
- * the actual frames of memory are not stored directly inside a `FrameHeader`, rather the `FrameHeader`s store pointer
- * to the frames and are stored separately them.
+ * This class represents headers for frames of memory that the `BufferPoolManager` stores pages of data into. Note
+ * that the actual frames of memory are not stored directly inside a `FrameHeader`, rather the `FrameHeader`s store
+ * pointer to the frames and are stored separately them.
  *
  * ---
  *
@@ -88,12 +87,14 @@ class FrameHeader {
    */
   std::vector<char> data_;
 
+  page_id_t page_id_;
+
   /**
    * TODO(P1): You may add any fields or helper functions under here that you think are necessary.
    *
    * One potential optimization you could make is storing an optional page ID of the page that the `FrameHeader` is
-   * currently storing. This might allow you to skip searching for the corresponding (page ID, frame ID) pair somewhere
-   * else in the buffer pool manager...
+   * currently storing. This might allow you to skip searching for the corresponding (page ID, frame ID) pair
+   * somewhere else in the buffer pool manager...
    */
 };
 
@@ -101,11 +102,11 @@ class FrameHeader {
  * @brief The declaration of the `BufferPoolManager` class.
  *
  * As stated in the writeup, the buffer pool is responsible for moving physical pages of data back and forth from
- * buffers in main memory to persistent storage. It also behaves as a cache, keeping frequently used pages in memory for
- * faster access, and evicting unused or cold pages back out to storage.
+ * buffers in main memory to persistent storage. It also behaves as a cache, keeping frequently used pages in memory
+ * for faster access, and evicting unused or cold pages back out to storage.
  *
- * Make sure you read the writeup in its entirety before attempting to implement the buffer pool manager. You also need
- * to have completed the implementation of both the `LRUKReplacer` and `DiskManager` classes.
+ * Make sure you read the writeup in its entirety before attempting to implement the buffer pool manager. You also
+ * need to have completed the implementation of both the `LRUKReplacer` and `DiskManager` classes.
  */
 class BufferPoolManager {
  public:
@@ -126,6 +127,13 @@ class BufferPoolManager {
   void FlushAllPagesUnsafe();
   void FlushAllPages();
   auto GetPinCount(page_id_t page_id) -> std::optional<size_t>;
+  inline auto AcquireRWLock(frame_id_t frame_id) -> bool {
+    if (frames_[frame_id]->rwlatch_.try_lock()) {
+      frames_[frame_id]->rwlatch_.unlock();
+      return true;
+    }
+    return false;
+  }
 
  private:
   /** @brief The number of frames in the buffer pool. */

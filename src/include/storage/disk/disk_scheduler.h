@@ -45,8 +45,7 @@ struct DiskRequest {
   DiskRequest(bool is_write, char *data, page_id_t page_id, std::promise<bool> callback)
       : is_write_(is_write), data_(data), page_id_(page_id), callback_(std::move(callback)) {}
 
-  DiskRequest(const DiskRequest &other)
-      : is_write_(other.is_write_), data_(other.data_), page_id_(other.page_id_), callback_() {
+  DiskRequest(const DiskRequest &other) : is_write_(other.is_write_), data_(other.data_), page_id_(other.page_id_) {
     // 这里创建了一个新的 promise 对象，原 promise 的状态不会被复制,需要使用新的 callback_ 获取完成信号
   }
 

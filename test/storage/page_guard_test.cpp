@@ -23,7 +23,7 @@ namespace bustub {
 const size_t FRAMES = 10;
 const size_t K_DIST = 2;
 
-TEST(PageGuardTest, DISABLED_DropTest) {
+TEST(PageGuardTest, DropTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -92,6 +92,12 @@ TEST(PageGuardTest, DISABLED_DropTest) {
   const auto mutable_page_id = bpm->NewPage();
   auto mutable_guard = bpm->WritePage(mutable_page_id);
   strcpy(mutable_guard.GetDataMut(), "data");  // NOLINT
+
+  auto data_read = mutable_guard.GetData();
+  std::string str_data(data_read);
+  std::cout << "从mutable_guard读取的数据为: " << str_data << " ????" << std::endl;
+  std::cout << std::flush;  // 强制刷新输出流
+
   mutable_guard.Drop();
 
   {
@@ -112,7 +118,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
   disk_manager->ShutDown();
 }
 
-TEST(PageGuardTest, DISABLED_MoveTest) {
+TEST(PageGuardTest, MoveTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 

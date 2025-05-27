@@ -13,12 +13,12 @@
 #include "storage/disk/disk_scheduler.h"
 #include <exception>
 #include "common/exception.h"
+#include "common/logger.h"
 #include "storage/disk/disk_manager.h"
 
 namespace bustub {
 
-DiskScheduler::DiskScheduler(DiskManager *disk_manager)
-    : disk_manager_(disk_manager), request_queue_(Channel<std::optional<DiskRequest>>()) {
+DiskScheduler::DiskScheduler(DiskManager *disk_manager) : disk_manager_(disk_manager) {
   // Spawn the background thread
   background_thread_.emplace([&] { StartWorkerThread(); });
 }
@@ -44,6 +44,8 @@ DiskScheduler::~DiskScheduler() {
 void DiskScheduler::Schedule(DiskRequest r) {
   if (r.data_ == nullptr || r.page_id_ == INVALID_PAGE_ID) {
     LOG_WARN("Invalid DiskRequest: data_ is null or page_id_ is invalid");
+    // 设置 promise 为失败状态，避免调用者永久等待
+    r.callback_.set_exception(std::make_exception_ptr(Exception("Invalid disk request")));
     return;
   }
   request_queue_.Put(std::optional<DiskRequest>{std::move(r)});
@@ -61,10 +63,10 @@ void DiskScheduler::StartWorkerThread() {
   for (;;) {
     auto request_opt = request_queue_.Get();
 
-    // 检查是否接收到终止信号（std::nullopt）
+    // 检查终止信号
     if (!request_opt.has_value()) {
       LOG_DEBUG("DiskScheduler worker thread received termination signal");
-      break;  // 退出循环，终止线程
+      break;
     }
 
     // 获取Schedule()传入的请求r
@@ -78,7 +80,7 @@ void DiskScheduler::StartWorkerThread() {
       } else {
         disk_manager_->ReadPage(request.page_id_, request.data_);
       }
-      LOG_DEBUG("请求处理完成，设置 promise 值");
+      // LOG_DEBUG("请求处理完成，设置 promise 值");
       // 请求处理成功，通过 promise 通知调用者
       request.callback_.set_value(true);
     } catch (...) {
