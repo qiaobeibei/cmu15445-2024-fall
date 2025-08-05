@@ -1,15 +1,13 @@
 //===----------------------------------------------------------------------===//
 //
-//                         BusTub
+//                         CMU-DB Project (15-445/645)
+//                         ***DO NO SHARE PUBLICLY***
 //
-// index_iterator.h
+// Identification: src/include/index/index_iterator.h
 //
-// Identification: src/include/storage/index/index_iterator.h
-//
-// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+// Copyright (c) 2018, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
-
 /**
  * index_iterator.h
  * For range scan of b+ tree
@@ -26,21 +24,32 @@ INDEX_TEMPLATE_ARGUMENTS
 class IndexIterator {
  public:
   // you may define your own constructor based on your member variables
-  IndexIterator();
+  IndexIterator(BufferPoolManager *bpm, page_id_t page_id, int index);
   ~IndexIterator();  // NOLINT
 
   auto IsEnd() -> bool;
 
+  // ���ﷵ������pair�����Ͳ���ʹ�����õ�ԭ���ǣ����ⲻ��Ҫ�Ŀ���
+  // ��ÿ�ζ�ȡfirst��secondʱ������ʹ�����ã����ÿ�ζ��������ߣ���ɶ��⿪��
+  // ʹ�����ã��򲻻´����ÿ�ζ�ȡ��ͬ���
   auto operator*() -> std::pair<const KeyType &, const ValueType &>;
 
   auto operator++() -> IndexIterator &;
 
-  auto operator==(const IndexIterator &itr) const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+  auto operator==(const IndexIterator &itr) const -> bool {
+    return ((index_ == -1 && itr.index_ == -1) || (page_id_ == itr.page_id_ && index_ == itr.index_));
+  }
 
-  auto operator!=(const IndexIterator &itr) const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+  auto operator!=(const IndexIterator &itr) const -> bool { return !operator==(itr); }
 
  private:
   // add your own private member variables here
+  BufferPoolManager *bpm_;
+  // ֮ǰ������pageGuard��Ϊ��Ա�����������벻��������
+  // ReadPageGuard page_guard_;
+  page_id_t page_id_;
+  int index_;
+  std::pair<KeyType, ValueType> result_;
 };
 
 }  // namespace bustub

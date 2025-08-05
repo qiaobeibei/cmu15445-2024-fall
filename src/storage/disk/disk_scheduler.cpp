@@ -25,12 +25,12 @@ DiskScheduler::DiskScheduler(DiskManager *disk_manager) : disk_manager_(disk_man
 
 DiskScheduler::~DiskScheduler() {
   // Put a `std::nullopt` in the queue to signal to exit the loop
-  LOG_DEBUG("DiskScheduler 析构函数被调用");
+  // LOG_DEBUG("DiskScheduler 析构函数被调用");
   request_queue_.Put(std::nullopt);
   if (background_thread_.has_value()) {
-    LOG_DEBUG("等待工作线程退出...");
+    // LOG_DEBUG("等待工作线程退出...");
     background_thread_->join();
-    LOG_DEBUG("工作线程已退出");
+    // LOG_DEBUG("工作线程已退出");
   }
 }
 
@@ -65,13 +65,13 @@ void DiskScheduler::StartWorkerThread() {
 
     // 检查终止信号
     if (!request_opt.has_value()) {
-      LOG_DEBUG("DiskScheduler worker thread received termination signal");
+      // LOG_DEBUG("DiskScheduler worker thread received termination signal");
       break;
     }
 
     // 获取Schedule()传入的请求r
     auto request = std::move(request_opt.value());
-    LOG_DEBUG("处理请求: page_id=%d, is_write=%d", request.page_id_, request.is_write_);
+    // LOG_DEBUG("处理请求: page_id=%d, is_write=%d", request.page_id_, request.is_write_);
 
     try {
       // 调用 disk_manager_的方法往指定页中读或写数据

@@ -129,7 +129,7 @@ auto BufferPoolManager::Size() const -> size_t { return num_frames_; }
  * @return The page ID of the newly allocated page.
  */
 auto BufferPoolManager::NewPage() -> page_id_t {
-  LOG_DEBUG("获取新页");
+  // LOG_DEBUG("获取新页");
   // 1.加锁
   std::scoped_lock<std::mutex> lk(*bpm_latch_);
 
@@ -141,7 +141,7 @@ auto BufferPoolManager::NewPage() -> page_id_t {
   } else {
     auto maybe_frame_id = replacer_->Evict();
     if (!maybe_frame_id.has_value()) {
-      LOG_ERROR("淘汰失败，无法分配新页");
+      // LOG_ERROR("淘汰失败，无法分配新页");
       return INVALID_PAGE_ID;  // 淘汰失败，无法分配新页
     }
     // 获取目标帧头
@@ -212,7 +212,7 @@ auto BufferPoolManager::NewPage() -> page_id_t {
  * @return `false` if the page exists but could not be deleted, `true` if the page didn't exist or deletion succeeded.
  */
 auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
-  LOG_DEBUG("删除指定页");
+  // LOG_DEBUG("删除指定页");
   std::unique_lock<std::mutex> lk(*bpm_latch_);
 
   // 检查页表中是否存在该页面
@@ -247,14 +247,20 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
 
   //   frame->is_dirty_ = false;
   // }
-
   lk.unlock();
   // 写回脏页
   if (frame->is_dirty_) {
     FlushPage(page_id);
   }
   lk.lock();
-
+  // 重新查找迭代器
+  it = page_table_.find(page_id);
+  if (it == page_table_.end() || it->second != frame_id) {
+    return true;
+  }
+  if (frame->pin_count_ > 0) {
+    return false;
+  }
   page_table_.erase(it);             // 从页表中删除该页面的映射
   free_frames_.push_back(frame_id);  // 将该帧标记为空闲
   replacer_->SetEvictable(frame_id, false);
@@ -304,7 +310,7 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
  * returns `std::nullopt`, otherwise returns a `WritePageGuard` ensuring exclusive and mutable access to a page's data.
  */
 auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type) -> std::optional<WritePageGuard> {
-  LOG_DEBUG("获取受保护的写页");
+  // LOG_DEBUG("获取受保护的写页");
   std::unique_lock<std::mutex> lk(*bpm_latch_);
 
   // 1.检查页面是否已在缓冲池中
@@ -408,7 +414,7 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
  * returns `std::nullopt`, otherwise returns a `ReadPageGuard` ensuring shared and read-only access to a page's data.
  */
 auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_type) -> std::optional<ReadPageGuard> {
-  LOG_DEBUG("获取受保护的读页");
+  // LOG_DEBUG("获取受保护的读页");
   std::unique_lock<std::mutex> lk(*bpm_latch_);
 
   // 1.检查页面是否已在缓冲池中
@@ -557,7 +563,7 @@ auto BufferPoolManager::ReadPage(page_id_t page_id, AccessType access_type) -> R
  * @return `false` if the page could not be found in the page table, otherwise `true`.
  */
 auto BufferPoolManager::FlushPageUnsafe(page_id_t page_id) -> bool {
-  LOG_DEBUG("不安全的刷新页");
+  // LOG_DEBUG("不安全的刷新页");
   auto it = page_table_.find(page_id);
   if (it == page_table_.end()) {
     return false;
@@ -625,13 +631,13 @@ auto BufferPoolManager::FlushPageUnsafe(page_id_t page_id) -> bool {
 // }
 
 auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
-  LOG_DEBUG("刷新页");
+  // LOG_DEBUG("刷新页");
   // 先获取全局锁，查找页面所在帧
   std::unique_lock<std::mutex> lk(*bpm_latch_);
 
   auto it = page_table_.find(page_id);
   if (it == page_table_.end()) {
-    LOG_DEBUG("Page %d not found in page table", page_id);
+    // LOG_DEBUG("Page %d not found in page table", page_id);
     return false;
   }
 
@@ -663,7 +669,7 @@ auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
   try {
     if (write_future.get()) {
       frame->is_dirty_ = false;
-      LOG_DEBUG("Successfully flushed page %d to disk", page_id);
+      // LOG_DEBUG("Successfully flushed page %d to disk", page_id);
       return true;
     }
   } catch (const std::exception &e) {
@@ -688,7 +694,7 @@ auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
  * TODO(P1): Add implementation
  */
 void BufferPoolManager::FlushAllPagesUnsafe() {
-  LOG_DEBUG("不安全刷新全部页");
+  // LOG_DEBUG("不安全刷新全部页");
   for (const auto &[page_id, frame_id] : page_table_) {
     auto &frame = frames_[frame_id];
 
@@ -714,7 +720,7 @@ void BufferPoolManager::FlushAllPagesUnsafe() {
  * TODO(P1): Add implementation
  */
 void BufferPoolManager::FlushAllPages() {
-  LOG_DEBUG("刷新全部页");
+  // LOG_DEBUG("刷新全部页");
   std::scoped_lock<std::mutex> lk(*bpm_latch_);
 
   for (const auto &[page_id, frame_id] : page_table_) {
@@ -760,7 +766,7 @@ void BufferPoolManager::FlushAllPages() {
  * @return std::optional<size_t> The pin count if the page exists, otherwise `std::nullopt`.
  */
 auto BufferPoolManager::GetPinCount(page_id_t page_id) -> std::optional<size_t> {
-  LOG_DEBUG("获取引用计数");
+  // LOG_DEBUG("获取引用计数");
   std::scoped_lock<std::mutex> lk(*bpm_latch_);
 
   // 页面是否存在于页表中

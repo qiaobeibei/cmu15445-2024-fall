@@ -1,15 +1,13 @@
 //===----------------------------------------------------------------------===//
 //
-//                         BusTub
+//                         CMU-DB Project (15-445/645)
+//                         ***DO NO SHARE PUBLICLY***
 //
-// b_plus_tree_leaf_page.h
+// Identification: src/include/page/b_plus_tree_leaf_page.h
 //
-// Identification: src/include/storage/page/b_plus_tree_leaf_page.h
-//
-// Copyright (c) 2015-2025, Carnegie Mellon University Database Group
+// Copyright (c) 2018-2024, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include <string>
@@ -55,12 +53,23 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   BPlusTreeLeafPage() = delete;
   BPlusTreeLeafPage(const BPlusTreeLeafPage &other) = delete;
 
+  /**
+   * After creating a new leaf page from buffer pool, must call initialize
+   * method to set default values
+   * @param max_size Max size of the leaf node
+   */
   void Init(int max_size = LEAF_PAGE_SLOT_CNT);
 
   // Helper methods
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
+
+  void SetKeyAt(int index, const KeyType &key);
+
+  auto ValueAt(int index) const -> ValueType;
+
+  void SetValueAt(int index, const ValueType &value);
 
   /**
    * @brief For test only return a string representing all keys in
@@ -92,7 +101,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   // Array members for page data.
   KeyType key_array_[LEAF_PAGE_SLOT_CNT];
   ValueType rid_array_[LEAF_PAGE_SLOT_CNT];
-  // (Spring 2025) Feel free to add more fields and helper functions below if needed
+  // (Fall 2024) Feel free to add more fields and helper functions below if needed
 };
 
 }  // namespace bustub

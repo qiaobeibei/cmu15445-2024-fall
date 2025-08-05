@@ -138,7 +138,7 @@ auto ReadPageGuard::IsDirty() const -> bool {
  * TODO(P1): Add implementation.
  */
 void ReadPageGuard::Flush() {
-  LOG_DEBUG("刷新");
+  // LOG_DEBUG("刷新");
   // 若当前对象无效或其帧对象标记为干净页直接返回
   if (!is_valid_ || !frame_->is_dirty_) {
     return;
@@ -303,7 +303,7 @@ auto WritePageGuard::GetDataMut() -> char * {
  * @brief Returns whether the page is dirty (modified but not flushed to the disk).
  */
 auto WritePageGuard::IsDirty() const -> bool {
-  LOG_DEBUG("是否为脏页");
+  // LOG_DEBUG("是否为脏页");
   BUSTUB_ENSURE(is_valid_, "tried to use an invalid write guard");
   return frame_->is_dirty_;
 }
@@ -314,7 +314,7 @@ auto WritePageGuard::IsDirty() const -> bool {
  * TODO(P1): Add implementation.
  */
 void WritePageGuard::Flush() {
-  LOG_DEBUG("刷新");
+  // LOG_DEBUG("刷新");
   if (!is_valid_ || !frame_->is_dirty_) {
     return;
   }

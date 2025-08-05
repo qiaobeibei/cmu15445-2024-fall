@@ -51,8 +51,6 @@ class Channel {
     return element;
   }
 
-  auto Empty() -> bool { return q_.empty(); }
-
  private:
   std::mutex m_;
   std::condition_variable cv_;
