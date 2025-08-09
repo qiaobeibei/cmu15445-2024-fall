@@ -25,12 +25,14 @@ namespace bustub {
  */
 DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the delete */
-void DeleteExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void DeleteExecutor::Init() {
+  child_executor_->Init();
+  deleted_count_ = 0;
+  finished_ = false;
+}
 
 /**
  * Yield the number of rows deleted from the table.
@@ -42,7 +44,41 @@ void DeleteExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  * NOTE: DeleteExecutor::Next() returns true with the number of deleted rows produced only once.
  */
 auto DeleteExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+  if (finished_) {
+    return false;
+  }
 
+  auto table_info = exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid());
+  BUSTUB_ASSERT(table_info != nullptr, "Table not found");
+
+  auto indexes = exec_ctx_->GetCatalog()->GetTableIndexes(table_info->name_);
+
+  Tuple child_tuple{};
+  RID child_rid{};
+
+  while (child_executor_->Next(&child_tuple, &child_rid)) {
+    auto [tuple_meta, table_tuple] = table_info->table_->GetTuple(child_rid);
+    if (tuple_meta.is_deleted_) {
+      continue;
+    }
+
+    TupleMeta delete_meta{0, true};
+    // 标删
+    table_info->table_->UpdateTupleMeta(delete_meta, child_rid);
+    ++deleted_count_;
+
+    for (auto &index_info : indexes) {
+      // 从所有索引中移除该元组的条目
+      auto key_tuple =
+          table_tuple.KeyFromTuple(table_info->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
+      index_info->index_->DeleteEntry(key_tuple, child_rid, exec_ctx_->GetTransaction());
+    }
+  }
+
+  std::vector<Value> values;
+  values.emplace_back(Value(TypeId::INTEGER, deleted_count_));
+  *tuple = Tuple{values, &GetOutputSchema()};
+  finished_ = true;
+  return true;
+}
 }  // namespace bustub

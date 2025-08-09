@@ -24,14 +24,12 @@ INDEX_TEMPLATE_ARGUMENTS
 class IndexIterator {
  public:
   // you may define your own constructor based on your member variables
+  IndexIterator() = default;
   IndexIterator(BufferPoolManager *bpm, page_id_t page_id, int index);
   ~IndexIterator();  // NOLINT
 
   auto IsEnd() -> bool;
 
-  // ���ﷵ������pair�����Ͳ���ʹ�����õ�ԭ���ǣ����ⲻ��Ҫ�Ŀ���
-  // ��ÿ�ζ�ȡfirst��secondʱ������ʹ�����ã����ÿ�ζ��������ߣ���ɶ��⿪��
-  // ʹ�����ã��򲻻´����ÿ�ζ�ȡ��ͬ���
   auto operator*() -> std::pair<const KeyType &, const ValueType &>;
 
   auto operator++() -> IndexIterator &;
