@@ -25,12 +25,30 @@ namespace bustub {
  */
 AggregationExecutor::AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                                          std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), 
+      plan_(plan), 
+      child_executor_(std::move(child_executor)),
+      aht_(plan->GetAggregates(), plan->GetAggregateTypes()),
+      aht_iterator_(aht_.Begin()) {}
 
 /** Initialize the aggregation */
-void AggregationExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void AggregationExecutor::Init() { 
+  child_executor_->Init();
+  aht_.Clear();
+
+  // 处理子执行器输出的元组
+  Tuple child_tuple{};
+  RID child_rid{};
+
+  while (child_executor_->Next(&child_tuple, &child_rid)) {
+    auto agg_key = MakeAggregateKey(&child_tuple);
+    auto agg_val = MakeAggregateValue(&child_tuple);
+    aht_.InsertCombine(agg_key, agg_val);
+  }
+
+  aht_iterator_ = aht_.Begin();
+
+ }
 
 /**
  * Yield the next tuple from the insert.
@@ -39,7 +57,55 @@ void AggregationExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."
  * @return `true` if a tuple was produced, `false` if there are no more tuples
  */
 
-auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+auto AggregationExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
+  // 遍历所有聚合结果，直到为空
+  if (aht_iterator_ == aht_.End()) {
+    // 处理无 GROUP BY 子句且聚合结果为空（输入数据为空）
+    if (plan_->GetGroupBys().empty() && aht_.Begin() == aht_.End()) {
+      // 返回初始聚类值（COUNT 为0，MAX等为NULL）
+      auto initial_val = aht_.GenerateInitialAggregateValue();
+      std::vector<Value> values;
+      // 添加 GROUP BY 字段值
+      for (const auto& group_by_expr : plan_->GetGroupBys()) {
+        (void)group_by_expr;
+      }
+
+      // Add aggregate values
+      for (const auto& agg_val : initial_val.aggregates_) {
+        values.push_back(agg_val);
+      }
+
+      *tuple = Tuple{values, &GetOutputSchema()};
+      *rid = RID{}; // 聚合结果无实际RID，赋空值
+
+      ++aht_iterator_;
+      return true;
+    }
+    // 遍历结束
+    return false;
+  }
+  // 获取当前聚合结果
+  auto agg_key = aht_iterator_.Key();
+  auto agg_val = aht_iterator_.Val();
+
+  std::vector<Value> values;
+
+  // 添加 GROUP BY 字段值
+  for (const auto& group_by_val : agg_key.group_bys_) {
+    values.push_back(group_by_val);
+  }
+
+  // 添加聚合值
+  for (const auto& agg_val_item : agg_val.aggregates_) {
+    values.push_back(agg_val_item);
+  }
+
+  *tuple = Tuple{values, &GetOutputSchema()};
+  *rid = RID{}; // 聚合结果无实际RID，赋空值
+
+  ++aht_iterator_;
+  return true;
+ }
 
 /** Do not use or remove this function, otherwise you will get zero points. */
 auto AggregationExecutor::GetChildExecutor() const -> const AbstractExecutor * { return child_executor_.get(); }

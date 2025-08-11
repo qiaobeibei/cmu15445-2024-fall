@@ -71,15 +71,51 @@ class SimpleAggregationHashTable {
     for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
       switch (agg_types_[i]) {
         case AggregationType::CountStarAggregate:
+          // Count(*) always increments by 1
+          result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
+          break;
         case AggregationType::CountAggregate:
+          // Count(col) increments by 1 if the column is not null
+          if (!input.aggregates_[i].IsNull()) {
+            if (result->aggregates_[i].IsNull()) { // 初始化为 1 但不 add
+              result->aggregates_[i] = ValueFactory::GetIntegerValue(1);
+            } else {
+              result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
+            }
+          }
+          break;
         case AggregationType::SumAggregate:
+          // sum adds the input value
+          if (!input.aggregates_[i].IsNull()) {
+            if (result->aggregates_[i].IsNull()) {
+              result->aggregates_[i] = input.aggregates_[i];
+            } else {
+              result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
+            }
+          }
+          break;
         case AggregationType::MinAggregate:
+          // min takes the minimum value
+          if (!input.aggregates_[i].IsNull()) {
+            // 如果当前聚合值为空 或者 当前输入值小于当前聚合值，则更新
+            if (result->aggregates_[i].IsNull() ||
+                input.aggregates_[i].CompareLessThan(result->aggregates_[i]) == CmpBool::CmpTrue) {
+              result->aggregates_[i] = input.aggregates_[i];
+            }
+          }
+          break;
         case AggregationType::MaxAggregate:
+          // max takes the maximum value
+          if (!input.aggregates_[i].IsNull()) {
+            // 如果当前聚合值为空 或者 当前输入值大于当前聚合值，则更新
+            if (result->aggregates_[i].IsNull() ||
+                input.aggregates_[i].CompareGreaterThan(result->aggregates_[i]) == CmpBool::CmpTrue) {
+              result->aggregates_[i] = input.aggregates_[i];
+            }
+          }
           break;
       }
     }
-
-    UNIMPLEMENTED("TODO(P3): Add implementation.");
   }
 
   /**
@@ -188,9 +224,9 @@ class AggregationExecutor : public AbstractExecutor {
   std::unique_ptr<AbstractExecutor> child_executor_;
 
   /** Simple aggregation hash table */
-  // TODO(Student): Uncomment SimpleAggregationHashTable aht_;
+  SimpleAggregationHashTable aht_;
 
   /** Simple aggregation hash table iterator */
-  // TODO(Student): Uncomment SimpleAggregationHashTable::Iterator aht_iterator_;
+  SimpleAggregationHashTable::Iterator aht_iterator_;
 };
 }  // namespace bustub
