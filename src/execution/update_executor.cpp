@@ -77,32 +77,25 @@ auto UpdateExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) -> bool {
 
     // 创建新元组
     Tuple new_tuple{new_values, &table_info_->schema_};
-    // 更新表,时间戳0，未标删
+    // 直接更新现有元组
     TupleMeta new_meta{0, false};
 
-    auto new_rid = table_info_->table_->InsertTuple(new_meta, new_tuple, exec_ctx_->GetLockManager(),
-                                                    exec_ctx_->GetTransaction(), plan_->GetTableOid());
+    table_info_->table_->UpdateTupleInPlace(new_meta, new_tuple, child_rid);
+    ++updated_count_;
 
-    if (new_rid.has_value()) {
-      // 将旧元组标删
-      TupleMeta delete_meta{0, true};
-      table_info_->table_->UpdateTupleMeta(delete_meta, child_rid);
-      ++updated_count_;
+    // 更新全部索引
+    for (auto &index_info : indexes) {
+      // 从旧元组中提取索引键
+      auto old_key =
+          old_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
+      // 移除旧索引条目
+      index_info->index_->DeleteEntry(old_key, child_rid, exec_ctx_->GetTransaction());
 
-      // 更新全部索引
-      for (auto &index_info : indexes) {
-        // 从旧元组中提取索引键
-        auto old_key =
-            old_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
-        // 移除旧索引条目
-        index_info->index_->DeleteEntry(old_key, child_rid, exec_ctx_->GetTransaction());
-
-        // 从新元组中提取索引键
-        auto new_key =
-            new_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
-        // 插入新索引条目
-        index_info->index_->InsertEntry(new_key, new_rid.value(), exec_ctx_->GetTransaction());
-      }
+      // 从新元组中提取索引键
+      auto new_key =
+          new_tuple.KeyFromTuple(table_info_->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
+      // 插入新索引条目
+      index_info->index_->InsertEntry(new_key, child_rid, exec_ctx_->GetTransaction());
     }
   }
 

@@ -43,7 +43,6 @@ class IndexIterator {
  private:
   // add your own private member variables here
   BufferPoolManager *bpm_;
-  // ֮ǰ������pageGuard��Ϊ��Ա�����������벻��������
   // ReadPageGuard page_guard_;
   page_id_t page_id_;
   int index_;
