@@ -60,6 +60,8 @@ class Optimizer {
 
   auto OptimizeSeqScanAsIndexScan(const AbstractPlanNodeRef &plan) -> AbstractPlanNodeRef;
 
+  auto CanUseIndexForPredicate(const AbstractExpression *predicate, const IndexInfo *index_info) -> bool;
+
   auto MatchIndex(const std::string &table_name, uint32_t index_key_idx)
       -> std::optional<std::tuple<index_oid_t, std::string>>;
 

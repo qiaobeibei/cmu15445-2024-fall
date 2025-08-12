@@ -77,7 +77,7 @@ class SimpleAggregationHashTable {
         case AggregationType::CountAggregate:
           // Count(col) increments by 1 if the column is not null
           if (!input.aggregates_[i].IsNull()) {
-            if (result->aggregates_[i].IsNull()) { // 初始化为 1 但不 add
+            if (result->aggregates_[i].IsNull()) {  // 初始化为 1 但不 add
               result->aggregates_[i] = ValueFactory::GetIntegerValue(1);
             } else {
               result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
@@ -138,30 +138,67 @@ class SimpleAggregationHashTable {
   /** An iterator over the aggregation hash table */
   class Iterator {
    public:
+    /** Creates a default iterator (invalid) */
+    Iterator() : iter_ptr_(nullptr) {}
+
     /** Creates an iterator for the aggregate map. */
-    explicit Iterator(std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter) : iter_{iter} {}
+    explicit Iterator(std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter)
+        : iter_ptr_(new std::unordered_map<AggregateKey, AggregateValue>::const_iterator(iter)) {}
+
+    /** Destructor */
+    ~Iterator() { delete iter_ptr_; }
+
+    /** Copy constructor */
+    Iterator(const Iterator &other)
+        : iter_ptr_(other.iter_ptr_
+                        ? new std::unordered_map<AggregateKey, AggregateValue>::const_iterator(*other.iter_ptr_)
+                        : nullptr) {}
+
+    /** Assignment operator */
+    Iterator &operator=(const Iterator &other) {
+      if (this != &other) {
+        delete iter_ptr_;
+        iter_ptr_ = other.iter_ptr_
+                        ? new std::unordered_map<AggregateKey, AggregateValue>::const_iterator(*other.iter_ptr_)
+                        : nullptr;
+      }
+      return *this;
+    }
 
     /** @return The key of the iterator */
-    auto Key() -> const AggregateKey & { return iter_->first; }
+    auto Key() -> const AggregateKey & {
+      BUSTUB_ASSERT(iter_ptr_ != nullptr, "Accessing invalid iterator");
+      return (*iter_ptr_)->first;
+    }
 
     /** @return The value of the iterator */
-    auto Val() -> const AggregateValue & { return iter_->second; }
+    auto Val() -> const AggregateValue & {
+      BUSTUB_ASSERT(iter_ptr_ != nullptr, "Accessing invalid iterator");
+      return (*iter_ptr_)->second;
+    }
 
     /** @return The iterator before it is incremented */
     auto operator++() -> Iterator & {
-      ++iter_;
+      BUSTUB_ASSERT(iter_ptr_ != nullptr, "Incrementing invalid iterator");
+      if (iter_ptr_ != nullptr) {
+        ++(*iter_ptr_);
+      }
       return *this;
     }
 
     /** @return `true` if both iterators are identical */
-    auto operator==(const Iterator &other) -> bool { return this->iter_ == other.iter_; }
+    auto operator==(const Iterator &other) -> bool {
+      if (iter_ptr_ == nullptr && other.iter_ptr_ == nullptr) return true;
+      if (iter_ptr_ == nullptr || other.iter_ptr_ == nullptr) return false;
+      return *iter_ptr_ == *other.iter_ptr_;
+    }
 
     /** @return `true` if both iterators are different */
-    auto operator!=(const Iterator &other) -> bool { return this->iter_ != other.iter_; }
+    auto operator!=(const Iterator &other) -> bool { return !(*this == other); }
 
    private:
-    /** Aggregates map */
-    std::unordered_map<AggregateKey, AggregateValue>::const_iterator iter_;
+    /** Aggregates map iterator pointer */
+    std::unordered_map<AggregateKey, AggregateValue>::const_iterator *iter_ptr_;
   };
 
   /** @return Iterator to the start of the hash table */
@@ -228,5 +265,11 @@ class AggregationExecutor : public AbstractExecutor {
 
   /** Simple aggregation hash table iterator */
   SimpleAggregationHashTable::Iterator aht_iterator_;
+
+  /** Flag to track if initial value has been output for empty table */
+  bool initial_value_output_{false};
+
+  /** Flag to track if the iterator is valid */
+  bool aht_iterator_valid_{false};
 };
 }  // namespace bustub

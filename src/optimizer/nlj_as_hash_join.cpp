@@ -105,8 +105,8 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
   if (optimized_plan->GetType() == PlanType::NestedLoopJoin) {
     const auto &nlj_plan = dynamic_cast<const NestedLoopJoinPlanNode &>(*optimized_plan);
 
-    // 只优化内连接，因为哈希连接对外连接的实现更复杂
-    if (nlj_plan.GetJoinType() == JoinType::INNER) {
+    // 支持内连接和左外连接
+    if (nlj_plan.GetJoinType() == JoinType::INNER || nlj_plan.GetJoinType() == JoinType::LEFT) {
       std::vector<AbstractExpressionRef> left_keys;
       std::vector<AbstractExpressionRef> right_keys;
 

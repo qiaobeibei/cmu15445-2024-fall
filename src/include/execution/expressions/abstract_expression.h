@@ -23,12 +23,12 @@
 #include "storage/table/tuple.h"
 #include "type/type.h"
 
-#define BUSTUB_EXPR_CLONE_WITH_CHILDREN(cname)                                                                   \
-  auto CloneWithChildren(std::vector<AbstractExpressionRef> children) const->std::unique_ptr<AbstractExpression> \
-      override {                                                                                                 \
-    auto expr = cname(*this);                                                                                    \
-    expr.children_ = children;                                                                                   \
-    return std::make_unique<cname>(std::move(expr));                                                             \
+#define BUSTUB_EXPR_CLONE_WITH_CHILDREN(cname)                                                                     \
+  auto CloneWithChildren(std::vector<AbstractExpressionRef> children) const -> std::unique_ptr<AbstractExpression> \
+      override {                                                                                                   \
+    auto expr = cname(*this);                                                                                      \
+    expr.children_ = children;                                                                                     \
+    return std::make_unique<cname>(std::move(expr));                                                               \
   }
 
 namespace bustub {

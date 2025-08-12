@@ -12,13 +12,13 @@
 
 #pragma once
 
+#include <vector>
 #include "common/rid.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/index_scan_plan.h"
-#include "storage/table/tuple.h"
 #include "storage/index/b_plus_tree_index.h"
-#include <vector>
+#include "storage/table/tuple.h"
 
 namespace bustub {
 
