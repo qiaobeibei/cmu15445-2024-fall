@@ -28,25 +28,22 @@ auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entr
       return false;
     }
 
+    const auto &key_a = entry_a.first[i];
+    const auto &key_b = entry_b.first[i];
+    
+    // 升序比较
     if (order_bys_[i].first == OrderByType::DEFAULT || order_bys_[i].first == OrderByType::ASC) {
-      if (entry_a.first[i].CompareLessThan(entry_b.first[i]) == CmpBool::CmpTrue) {
-        return true;
-      }
-      if (entry_a.first[i].CompareGreaterThan(entry_b.first[i]) == CmpBool::CmpTrue) {
-        return false;
-      }
+      if (key_a.CompareLessThan(key_b) == CmpBool::CmpTrue) return true;
+      if (key_a.CompareGreaterThan(key_b) == CmpBool::CmpTrue) return false;
     }
-
+    
+    // 降序比较
     if (order_bys_[i].first == OrderByType::DESC) {
-      if (entry_a.first[i].CompareGreaterThan(entry_b.first[i]) == CmpBool::CmpTrue) {
-        return true;
-      }
-      if (entry_a.first[i].CompareLessThan(entry_b.first[i]) == CmpBool::CmpTrue) {
-        return false;
-      }
+      if (key_a.CompareGreaterThan(key_b) == CmpBool::CmpTrue) return true;
+      if (key_a.CompareLessThan(key_b) == CmpBool::CmpTrue) return false;
     }
   }
-  // order by 中每一项全相等
+  // 所有排序键都相等
   return true;
 }
 

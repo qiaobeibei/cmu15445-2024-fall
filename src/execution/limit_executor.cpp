@@ -27,10 +27,12 @@ auto LimitExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   if (cnt_ >= static_cast<int>(plan_->GetLimit())) {
     return false;
   }
+  
   if (child_executor_->Next(tuple, rid)) {
     cnt_++;
     return true;
   }
+  
   return false;
 }
 
